@@ -1,0 +1,327 @@
+---
+# Ansible Playbook for Nexus Repository Setup
+# Creates Maven, NPM, NuGet, and Docker repositories
+
+- name: Setup Nexus Repositories
+  hosts: localhost
+  vars:
+    nexus_url: "http://localhost:8081"
+    nexus_user: "{{ lookup('env', 'NEXUS_USER') | default('admin') }}"
+    nexus_pass: "{{ lookup('env', 'NEXUS_PASS') | default('admin') }}"
+    
+  tasks:
+    - name: Create Maven Proxy Repository
+      uri:
+        url: "{{ nexus_url }}/service/rest/v1/repositories/maven2/proxy"
+        method: POST
+        user: "{{ nexus_user }}"
+        password: "{{ nexus_pass }}"
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "maven-proxy"
+          online: true
+          storage:
+            blobStoreName: "default"
+          proxy:
+            remoteUrl: "https://repo1.maven.org/maven2"
+          negativeCache:
+            enabled: true
+            timeToLive: 1440
+          httpClient:
+            blocked: false
+            autoBlock: true
+        status_code: [201, 400]
+
+    - name: Create Maven Hosted Releases Repository
+      uri:
+        url: "{{ nexus_url }}/service/rest/v1/repositories/maven2/hosted"
+        method: POST
+        user: "{{ nexus_user }}"
+        password: "{{ nexus_pass }}"
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "maven-hosted-releases"
+          online: true
+          storage:
+            blobStoreName: "default"
+            writePolicy: "ALLOW_ONCE"
+          maven:
+            versionPolicy: "RELEASE"
+            layoutPolicy: "STRICT"
+        status_code: [201, 400]
+
+    - name: Create Maven Hosted Snapshots Repository
+      uri:
+        url: "{{ nexus_url }}/service/rest/v1/repositories/maven2/hosted"
+        method: POST
+        user: "{{ nexus_user }}"
+        password: "{{ nexus_pass }}"
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "maven-hosted-snapshots"
+          online: true
+          storage:
+            blobStoreName: "default"
+            writePolicy: "ALLOW"
+          maven:
+            versionPolicy: "SNAPSHOT"
+            layoutPolicy: "STRICT"
+        status_code: [201, 400]
+
+    - name: Create Maven Group Repository
+      uri:
+        url: "{{ nexus_url }}/service/rest/v1/repositories/maven2/group"
+        method: POST
+        user: "{{ nexus_user }}"
+        password: "{{ nexus_pass }}"
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "maven-group"
+          online: true
+          storage:
+            blobStoreName: "default"
+          group:
+            memberNames:
+              - "maven-proxy"
+              - "maven-hosted-releases"
+              - "maven-hosted-snapshots"
+        status_code: [201, 400]
+
+    - name: Create NPM Proxy Repository
+      uri:
+        url: "{{ nexus_url }}/service/rest/v1/repositories/npm/proxy"
+        method: POST
+        user: "{{ nexus_user }}"
+        password: "{{ nexus_pass }}"
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "npm-proxy"
+          online: true
+          storage:
+            blobStoreName: "default"
+          proxy:
+            remoteUrl: "https://registry.npmjs.org"
+          negativeCache:
+            enabled: true
+            timeToLive: 1440
+          httpClient:
+            blocked: false
+            autoBlock: true
+        status_code: [201, 400]
+
+    - name: Create NPM Hosted Releases Repository
+      uri:
+        url: "{{ nexus_url }}/service/rest/v1/repositories/npm/hosted"
+        method: POST
+        user: "{{ nexus_user }}"
+        password: "{{ nexus_pass }}"
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "npm-hosted-releases"
+          online: true
+          storage:
+            blobStoreName: "default"
+            writePolicy: "ALLOW_ONCE"
+        status_code: [201, 400]
+
+    - name: Create NPM Hosted Snapshots Repository
+      uri:
+        url: "{{ nexus_url }}/service/rest/v1/repositories/npm/hosted"
+        method: POST
+        user: "{{ nexus_user }}"
+        password: "{{ nexus_pass }}"
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "npm-hosted-snapshots"
+          online: true
+          storage:
+            blobStoreName: "default"
+            writePolicy: "ALLOW"
+        status_code: [201, 400]
+
+    - name: Create NPM Group Repository
+      uri:
+        url: "{{ nexus_url }}/service/rest/v1/repositories/npm/group"
+        method: POST
+        user: "{{ nexus_user }}"
+        password: "{{ nexus_pass }}"
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "npm-group"
+          online: true
+          storage:
+            blobStoreName: "default"
+          group:
+            memberNames:
+              - "npm-proxy"
+              - "npm-hosted-releases"
+              - "npm-hosted-snapshots"
+        status_code: [201, 400]
+
+    - name: Create NuGet Proxy Repository
+      uri:
+        url: "{{ nexus_url }}/service/rest/v1/repositories/nuget/proxy"
+        method: POST
+        user: "{{ nexus_user }}"
+        password: "{{ nexus_pass }}"
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "nuget-proxy-v3"
+          online: true
+          storage:
+            blobStoreName: "default"
+          proxy:
+            remoteUrl: "https://api.nuget.org/v3/index.json"
+          negativeCache:
+            enabled: true
+            timeToLive: 1440
+          httpClient:
+            blocked: false
+            autoBlock: true
+          nugetProxy:
+            queryCacheItemMaxAge: 3600
+        status_code: [201, 400]
+
+    - name: Create NuGet Hosted Releases Repository
+      uri:
+        url: "{{ nexus_url }}/service/rest/v1/repositories/nuget/hosted"
+        method: POST
+        user: "{{ nexus_user }}"
+        password: "{{ nexus_pass }}"
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "nuget-hosted-releases"
+          online: true
+          storage:
+            blobStoreName: "default"
+            writePolicy: "ALLOW_ONCE"
+        status_code: [201, 400]
+
+    - name: Create NuGet Group Repository
+      uri:
+        url: "{{ nexus_url }}/service/rest/v1/repositories/nuget/group"
+        method: POST
+        user: "{{ nexus_user }}"
+        password: "{{ nexus_pass }}"
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "nuget-group-v3"
+          online: true
+          storage:
+            blobStoreName: "default"
+          group:
+            memberNames:
+              - "nuget-proxy-v3"
+              - "nuget-hosted-releases"
+        status_code: [201, 400]
+
+    - name: Create Docker Proxy Repository
+      uri:
+        url: "{{ nexus_url }}/service/rest/v1/repositories/docker/proxy"
+        method: POST
+        user: "{{ nexus_user }}"
+        password: "{{ nexus_pass }}"
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "docker-proxy"
+          online: true
+          storage:
+            blobStoreName: "default"
+          proxy:
+            remoteUrl: "https://registry-1.docker.io"
+          negativeCache:
+            enabled: true
+            timeToLive: 1440
+          httpClient:
+            blocked: false
+            autoBlock: true
+          docker:
+            httpPort: 9072
+            forceBasicAuth: true
+            v1Enabled: false
+          dockerProxy:
+            indexType: "HUB"
+            indexUrl: "https://index.docker.io"
+        status_code: [201, 400]
+
+    - name: Create Docker Hosted Repository
+      uri:
+        url: "{{ nexus_url }}/service/rest/v1/repositories/docker/hosted"
+        method: POST
+        user: "{{ nexus_user }}"
+        password: "{{ nexus_pass }}"
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "docker-hosted"
+          online: true
+          storage:
+            blobStoreName: "default"
+            writePolicy: "ALLOW"
+          docker:
+            httpPort: 9082
+            httpsPort: 9083
+            forceBasicAuth: true
+            v1Enabled: false
+        status_code: [201, 400]
+
+    - name: Create Docker Group Repository
+      uri:
+        url: "{{ nexus_url }}/service/rest/v1/repositories/docker/group"
+        method: POST
+        user: "{{ nexus_user }}"
+        password: "{{ nexus_pass }}"
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "docker-group"
+          online: true
+          storage:
+            blobStoreName: "default"
+          group:
+            memberNames:
+              - "docker-proxy"
+              - "docker-hosted"
+          docker:
+            httpPort: 9092
+            httpsPort: 9093
+            forceBasicAuth: true
+            v1Enabled: false
+        status_code: [201, 400]
+
+    - name: Display setup completion
+      debug:
+        msg:
+          - "✅ Nexus repository setup complete!"
+          - "🌐 Access Nexus UI: {{ nexus_url }}"
+          - "📋 Repositories created:"
+          - "  - Maven: maven-group ({{ nexus_url }}/repository/maven-group/)"
+          - "  - NPM: npm-group ({{ nexus_url }}/repository/npm-group/)"
+          - "  - NuGet: nuget-group-v3 ({{ nexus_url }}/repository/nuget-group-v3/)"
+          - "  - Docker: docker-group (localhost:9092)"
