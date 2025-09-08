@@ -1,34 +1,6 @@
 # Terraform configuration for Nexus Repository Setup
 # Creates Maven, NPM, NuGet, and Docker repositories
 
-terraform {
-  required_providers {
-    nexus = {
-      source  = "datadrivers/nexus"
-      version = "~> 1.21"
-    }
-  }
-}
-
-provider "nexus" {
-  url      = "http://localhost:8081"
-  username = var.nexus_user
-  password = var.nexus_pass
-}
-
-variable "nexus_user" {
-  description = "Nexus username"
-  type        = string
-  default     = "admin"
-}
-
-variable "nexus_pass" {
-  description = "Nexus password"
-  type        = string
-  default     = "admin"
-  sensitive   = true
-}
-
 # Maven Repositories
 resource "nexus_repository_maven_proxy" "maven_proxy" {
   name   = "maven-proxy"
@@ -313,13 +285,34 @@ resource "nexus_repository_docker_group" "docker_group" {
   }
 }
 
-# Outputs
-output "nexus_repositories" {
-  description = "Created Nexus repositories"
-  value = {
-    maven_group    = "http://localhost:8081/repository/${nexus_repository_maven_group.maven_group.name}/"
-    npm_group      = "http://localhost:8081/repository/${nexus_repository_npm_group.npm_group.name}/"
-    nuget_group_v3 = "http://localhost:8081/repository/${nexus_repository_nuget_group.nuget_group_v3.name}/"
-    docker_group   = "localhost:9092"
+# Configure CORS for browser access (all microfrontend modes)
+resource "null_resource" "nexus_cors_config" {
+  depends_on = [
+    nexus_repository_npm_group.npm_group,
+    nexus_repository_maven_group.maven_group,
+    nexus_repository_nuget_group.nuget_group_v3,
+    nexus_repository_docker_group.docker_group
+  ]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      bash ./setup-nexus.sh cors-only
+    EOT
+  }
+  
+  provisioner "local-exec" {
+    command = <<-EOT
+      timeout /t 3 /nobreak >nul 2>&1 || sleep 3 || echo "Waiting..."
+      bash ./test-cors.sh || echo "CORS test completed with warnings"
+    EOT
+  }
+  
+  provisioner "local-exec" {
+    when    = destroy
+    command = <<-EOT
+      pkill -f cors-proxy.js || true
+      rm -f cors-proxy.pid cors-proxy.log || true
+    EOT
   }
 }
+

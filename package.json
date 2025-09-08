@@ -1,0 +1,14 @@
+{
+  "name": "nexus-cors-proxy",
+  "version": "1.0.0",
+  "description": "CORS proxy for Nexus Community Edition",
+  "main": "cors-proxy.js",
+  "scripts": {
+    "start": "node cors-proxy.js",
+    "install-deps": "npm install express http-proxy-middleware"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "http-proxy-middleware": "^2.0.9"
+  }
+}

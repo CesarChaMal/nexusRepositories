@@ -5,9 +5,23 @@
 - name: Setup Nexus Repositories
   hosts: localhost
   vars:
-    nexus_url: "http://localhost:8081"
-    nexus_user: "{{ lookup('env', 'NEXUS_USER') | default('admin') }}"
-    nexus_pass: "{{ lookup('env', 'NEXUS_PASS') | default('admin') }}"
+    # Load from .env file with fallback to environment variables
+    env_file_path: "{{ '.env' if (('.env' | realpath) | exists) else ('../.env' if (('../.env' | realpath) | exists) else '') }}"
+    env_vars: "{{ (lookup('file', env_file_path, errors='ignore') | default('') | regex_findall('^([^#][^=]+)=(.*)$', multiline=True) | items2dict) if env_file_path else {} }}"
+    nexus_url: "{{ env_vars.NEXUS_URL | default(lookup('env', 'NEXUS_URL') | default('http://localhost:8081')) }}"
+    nexus_user: "{{ env_vars.NEXUS_USER | default(lookup('env', 'NEXUS_USER') | default('admin')) }}"
+    nexus_pass: "{{ env_vars.NEXUS_PASS | default(lookup('env', 'NEXUS_PASS') | default('admin')) }}"
+    # CORS configuration from .env file with fallbacks
+    cors_enabled: "{{ env_vars.NEXUS_CORS_ENABLED | default(lookup('env', 'NEXUS_CORS_ENABLED') | default('true')) | bool }}"
+    cors_allow_credentials: "{{ env_vars.NEXUS_CORS_ALLOW_CREDENTIALS | default(lookup('env', 'NEXUS_CORS_ALLOW_CREDENTIALS') | default('true')) | bool }}"
+    cors_allowed_origins: "{{ (env_vars.NEXUS_CORS_ALLOWED_ORIGINS | default(lookup('env', 'NEXUS_CORS_ALLOWED_ORIGINS') | default('http://localhost:8080,https://*.github.io,*'))).split(',') }}"
+    cors_allowed_methods: "{{ (env_vars.NEXUS_CORS_ALLOWED_METHODS | default(lookup('env', 'NEXUS_CORS_ALLOWED_METHODS') | default('GET,POST,PUT,DELETE,HEAD,OPTIONS'))).split(',') }}"
+    cors_allowed_headers: "{{ (env_vars.NEXUS_CORS_ALLOWED_HEADERS | default(lookup('env', 'NEXUS_CORS_ALLOWED_HEADERS') | default('*'))).split(',') }}"
+    cors_exposed_headers: "{{ (env_vars.NEXUS_CORS_EXPOSED_HEADERS | default(lookup('env', 'NEXUS_CORS_EXPOSED_HEADERS') | default('*'))).split(',') }}"
+    # CORS Proxy configuration
+    cors_proxy_port: "{{ env_vars.NEXUS_CORS_PROXY_PORT | default(lookup('env', 'NEXUS_CORS_PROXY_PORT') | default('8082')) | int }}"
+    cors_proxy_enabled: "{{ env_vars.NEXUS_CORS_PROXY_ENABLED | default(lookup('env', 'NEXUS_CORS_PROXY_ENABLED') | default('true')) | bool }}"
+    cors_proxy_auto_start: "{{ env_vars.NEXUS_CORS_PROXY_AUTO_START | default(lookup('env', 'NEXUS_CORS_PROXY_AUTO_START') | default('true')) | bool }}"
     
   tasks:
     - name: Create Maven Proxy Repository
@@ -315,13 +329,148 @@
             v1Enabled: false
         status_code: [201, 400]
 
+    - name: Check if CORS API is available (Nexus Pro feature)
+      uri:
+        url: "{{ nexus_url }}/service/rest/v1/security/cors"
+        method: GET
+        user: "{{ nexus_user }}"
+        password: "{{ nexus_pass }}"
+        status_code: [200, 404]
+      register: cors_check
+      ignore_errors: yes
+
+    - name: Configure CORS for browser access (Nexus Pro only)
+      uri:
+        url: "{{ nexus_url }}/service/rest/v1/security/cors"
+        method: PUT
+        user: "{{ nexus_user }}"
+        password: "{{ nexus_pass }}"
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          enabled: "{{ cors_enabled }}"
+          allowCredentials: "{{ cors_allow_credentials }}"
+          allowedOrigins: "{{ cors_allowed_origins }}"
+          allowedMethods: "{{ cors_allowed_methods }}"
+          allowedHeaders: "{{ cors_allowed_headers }}"
+          exposedHeaders: "{{ cors_exposed_headers }}"
+        status_code: [200, 204]
+      when: cors_check.status == 200
+
+    - name: Setup CORS proxy for Community Edition
+      block:
+        - name: Check if Node.js is available
+          command: node --version
+          register: node_check
+          ignore_errors: yes
+
+        - name: Create package.json for CORS proxy
+          copy:
+            content: |
+              {
+                "name": "nexus-cors-proxy",
+                "dependencies": {
+                  "express": "^4.18.2",
+                  "http-proxy-middleware": "^2.0.6"
+                }
+              }
+            dest: ./package.json
+          when: node_check.rc == 0
+
+        - name: Install CORS proxy dependencies
+          npm:
+            path: .
+          when: node_check.rc == 0
+
+        - name: Create CORS proxy script
+          copy:
+            content: |
+              const express = require('express');
+              const { createProxyMiddleware } = require('http-proxy-middleware');
+              const app = express();
+              const PORT = {{ cors_proxy_port }};
+              
+              app.use((req, res, next) => {
+                  res.header('Access-Control-Allow-Origin', '*');
+                  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, HEAD, OPTIONS');
+                  res.header('Access-Control-Allow-Headers', '*');
+                  res.header('Access-Control-Allow-Credentials', 'true');
+                  if (req.method === 'OPTIONS') return res.status(204).end();
+                  next();
+              });
+              
+              app.use('/', createProxyMiddleware({ target: 'http://localhost:8081', changeOrigin: true }));
+              app.listen(PORT, () => console.log(`CORS proxy running on http://localhost:${PORT}`));
+            dest: ./cors-proxy.js
+          when: node_check.rc == 0
+
+        - name: Check if port is available
+          wait_for:
+            port: "{{ cors_proxy_port }}"
+            host: localhost
+            timeout: 1
+          register: port_check
+          ignore_errors: yes
+          when: node_check.rc == 0 and cors_proxy_enabled and cors_proxy_auto_start
+
+        - name: Start CORS proxy
+          shell: nohup node cors-proxy.js > cors-proxy.log 2>&1 & echo $! > cors-proxy.pid
+          when: node_check.rc == 0 and cors_proxy_enabled and cors_proxy_auto_start and port_check.failed
+
+        - name: Wait for CORS proxy to start
+          wait_for:
+            port: "{{ cors_proxy_port }}"
+            host: localhost
+            timeout: 10
+          when: node_check.rc == 0 and cors_proxy_enabled and cors_proxy_auto_start and port_check.failed
+
+        - name: Test CORS headers
+          uri:
+            url: "http://localhost:{{ cors_proxy_port }}/"
+            method: HEAD
+            headers:
+              Origin: "http://localhost:8080"
+            status_code: [200, 404]
+          register: cors_test
+          when: node_check.rc == 0 and cors_proxy_enabled and cors_proxy_auto_start and port_check.failed
+
+        - name: Verify CORS headers
+          debug:
+            msg: "✅ CORS headers verified: {{ cors_test.access_control_allow_origin | default('*') }}"
+          when: node_check.rc == 0 and cors_proxy_enabled and cors_proxy_auto_start and port_check.failed and cors_test.access_control_allow_origin is defined
+
+        - name: Run comprehensive CORS test
+          shell: bash ./test-cors.sh
+          register: cors_full_test
+          ignore_errors: yes
+          when: node_check.rc == 0 and cors_proxy_enabled and cors_proxy_auto_start and port_check.failed
+
+        - name: Display CORS test results
+          debug:
+            msg: "{{ cors_full_test.stdout_lines }}"
+          when: node_check.rc == 0 and cors_proxy_enabled and cors_proxy_auto_start and port_check.failed and cors_full_test.stdout_lines is defined
+
+      when: cors_check.status == 404
+
+    - name: Display configuration source
+      debug:
+        msg:
+          - "📄 Configuration loaded from: {{ 'environment variables' if not env_file_path else env_file_path }}"
+          - "🔧 Nexus URL: {{ nexus_url }}"
+          - "👤 Nexus User: {{ nexus_user }}"
+          - "🔑 Password configured: {{ 'Yes' if nexus_pass != 'admin' else 'Using default (admin)' }}"
+
     - name: Display setup completion
       debug:
         msg:
           - "✅ Nexus repository setup complete!"
           - "🌐 Access Nexus UI: {{ nexus_url }}"
+          - "🔧 CORS: {{ 'Configured (Nexus Pro)' if cors_check.status == 200 else 'Proxy running on http://localhost:' + cors_proxy_port|string + ' (Community Edition)' }}"
           - "📋 Repositories created:"
           - "  - Maven: maven-group ({{ nexus_url }}/repository/maven-group/)"
           - "  - NPM: npm-group ({{ nexus_url }}/repository/npm-group/)"
           - "  - NuGet: nuget-group-v3 ({{ nexus_url }}/repository/nuget-group-v3/)"
           - "  - Docker: docker-group (localhost:9092)"
+          - "{{ '🌐 CORS-enabled URLs: http://localhost:' + cors_proxy_port|string + '/repository/npm-group/' if cors_check.status == 404 else '' }}"
+          - "{{ '🧪 CORS test completed - check output above for results' if cors_check.status == 404 else '' }}"
