@@ -32,7 +32,7 @@ variable "cors_allow_credentials" {
 variable "cors_allowed_origins" {
   description = "CORS allowed origins as comma-separated string (priority: .env -> environment -> terraform vars)"
   type        = string
-  default     = "http://localhost:8080,http://127.0.0.1:8080,https://*.github.io,https://*.githubusercontent.com,https://*.s3.amazonaws.com,https://*.s3-website-*.amazonaws.com,http://*.s3-website-*.amazonaws.com,https://cdn.jsdelivr.net,https://unpkg.com,*"
+  default     = "http://localhost:8080,http://127.0.0.1:8080,https://*.github.io,https://*.githubusercontent.com,https://*.s3.amazonaws.com,https://*.s3-website.*.amazonaws.com,http://*.s3-website.*.amazonaws.com,https://cdn.jsdelivr.net,https://unpkg.com,*"
 }
 
 variable "cors_allowed_methods" {

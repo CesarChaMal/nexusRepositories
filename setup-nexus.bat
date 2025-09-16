@@ -135,13 +135,13 @@ if "%CORS_STATUS%"=="404" (
     REM Set CORS configuration with fallback to defaults
     if not defined NEXUS_CORS_ENABLED set NEXUS_CORS_ENABLED=true
     if not defined NEXUS_CORS_ALLOW_CREDENTIALS set NEXUS_CORS_ALLOW_CREDENTIALS=true
-    if not defined NEXUS_CORS_ALLOWED_ORIGINS set NEXUS_CORS_ALLOWED_ORIGINS=http://localhost:8080,http://127.0.0.1:8080,https://*.github.io,https://*.githubusercontent.com,https://*.s3.amazonaws.com,https://*.s3-website-*.amazonaws.com,http://*.s3-website-*.amazonaws.com,https://cdn.jsdelivr.net,https://unpkg.com,*
+    if not defined NEXUS_CORS_ALLOWED_ORIGINS set NEXUS_CORS_ALLOWED_ORIGINS=http://localhost:8080,http://127.0.0.1:8080,https://*.github.io,https://*.githubusercontent.com,https://*.s3.amazonaws.com,https://*.s3-website.*.amazonaws.com,http://*.s3-website.*.amazonaws.com,https://cdn.jsdelivr.net,https://unpkg.com,*
     if not defined NEXUS_CORS_ALLOWED_METHODS set NEXUS_CORS_ALLOWED_METHODS=GET,POST,PUT,DELETE,HEAD,OPTIONS
     if not defined NEXUS_CORS_ALLOWED_HEADERS set NEXUS_CORS_ALLOWED_HEADERS=*
     if not defined NEXUS_CORS_EXPOSED_HEADERS set NEXUS_CORS_EXPOSED_HEADERS=*
     
     REM Convert comma-separated strings to JSON arrays (simplified for batch)
-    set ORIGINS_JSON=[\"http://localhost:8080\",\"http://127.0.0.1:8080\",\"https://*.github.io\",\"https://*.githubusercontent.com\",\"https://*.s3.amazonaws.com\",\"https://*.s3-website-*.amazonaws.com\",\"http://*.s3-website-*.amazonaws.com\",\"https://cdn.jsdelivr.net\",\"https://unpkg.com\",\"*\"]
+    set ORIGINS_JSON=[\"http://localhost:8080\",\"http://127.0.0.1:8080\",\"https://*.github.io\",\"https://*.githubusercontent.com\",\"https://*.s3.amazonaws.com\",\"https://*.s3-website.*.amazonaws.com\",\"http://*.s3-website.*.amazonaws.com\",\"https://cdn.jsdelivr.net\",\"https://unpkg.com\",\"*\"]
     set METHODS_JSON=[\"GET\",\"POST\",\"PUT\",\"DELETE\",\"HEAD\",\"OPTIONS\"]
     set HEADERS_JSON=[\"*\"]
     set EXPOSED_JSON=[\"*\"]

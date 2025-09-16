@@ -121,7 +121,7 @@ NEXUS_PUBLISH_REGISTRY=http://localhost:8081/repository/npm-hosted-releases/
 # CORS Configuration (automatically configured by all methods)
 NEXUS_CORS_ENABLED=true
 NEXUS_CORS_ALLOW_CREDENTIALS=true
-NEXUS_CORS_ALLOWED_ORIGINS=http://localhost:8080,http://127.0.0.1:8080,https://*.github.io,https://*.githubusercontent.com,https://*.s3.amazonaws.com,https://*.s3-website-*.amazonaws.com,http://*.s3-website-*.amazonaws.com,https://cdn.jsdelivr.net,https://unpkg.com,*
+NEXUS_CORS_ALLOWED_ORIGINS=http://localhost:8080,http://127.0.0.1:8080,https://*.github.io,https://*.githubusercontent.com,https://*.s3.amazonaws.com,https://*.s3-website.*.amazonaws.com,http://*.s3-website.*.amazonaws.com,https://cdn.jsdelivr.net,https://unpkg.com,*
 NEXUS_CORS_ALLOWED_METHODS=GET,POST,PUT,DELETE,HEAD,OPTIONS
 NEXUS_CORS_ALLOWED_HEADERS=*
 NEXUS_CORS_EXPOSED_HEADERS=*
@@ -504,7 +504,7 @@ All 4 automation methods now use **unified CORS configuration** from your `.env`
 ```bash
 NEXUS_CORS_ENABLED=true
 NEXUS_CORS_ALLOW_CREDENTIALS=true
-NEXUS_CORS_ALLOWED_ORIGINS=http://localhost:8080,http://127.0.0.1:8080,https://*.github.io,https://*.githubusercontent.com,https://*.s3.amazonaws.com,https://*.s3-website-*.amazonaws.com,http://*.s3-website-*.amazonaws.com,https://cdn.jsdelivr.net,https://unpkg.com,*
+NEXUS_CORS_ALLOWED_ORIGINS=http://localhost:8080,http://127.0.0.1:8080,https://*.github.io,https://*.githubusercontent.com,https://*.s3.amazonaws.com,https://*.s3-website.*.amazonaws.com,http://*.s3-website.*.amazonaws.com,https://cdn.jsdelivr.net,https://unpkg.com,*
 NEXUS_CORS_ALLOWED_METHODS=GET,POST,PUT,DELETE,HEAD,OPTIONS
 NEXUS_CORS_ALLOWED_HEADERS=*
 NEXUS_CORS_EXPOSED_HEADERS=*

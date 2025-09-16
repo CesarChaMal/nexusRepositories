@@ -215,7 +215,7 @@ else
     # Set CORS configuration with fallback to defaults
     CORS_ENABLED=${NEXUS_CORS_ENABLED:-true}
     CORS_ALLOW_CREDENTIALS=${NEXUS_CORS_ALLOW_CREDENTIALS:-true}
-    CORS_ALLOWED_ORIGINS=${NEXUS_CORS_ALLOWED_ORIGINS:-"http://localhost:8080,http://127.0.0.1:8080,https://*.github.io,https://*.githubusercontent.com,https://*.s3.amazonaws.com,https://*.s3-website-*.amazonaws.com,http://*.s3-website-*.amazonaws.com,https://cdn.jsdelivr.net,https://unpkg.com,*"}
+    CORS_ALLOWED_ORIGINS=${NEXUS_CORS_ALLOWED_ORIGINS:-"http://localhost:8080,http://127.0.0.1:8080,https://*.github.io,https://*.githubusercontent.com,https://*.s3.amazonaws.com,https://*.s3-website.*.amazonaws.com,http://*.s3-website.*.amazonaws.com,https://cdn.jsdelivr.net,https://unpkg.com,*"}
     CORS_ALLOWED_METHODS=${NEXUS_CORS_ALLOWED_METHODS:-"GET,POST,PUT,DELETE,HEAD,OPTIONS"}
     CORS_ALLOWED_HEADERS=${NEXUS_CORS_ALLOWED_HEADERS:-"*"}
     CORS_EXPOSED_HEADERS=${NEXUS_CORS_EXPOSED_HEADERS:-"*"}

@@ -1,0 +1,60 @@
+---
+# Ansible Playbook for Nexus CORS Configuration Only
+# Configures CORS for all microfrontend modes without creating repositories
+
+- name: Configure Nexus CORS
+  hosts: localhost
+  vars:
+    nexus_url: "http://localhost:8081"
+    nexus_user: "{{ lookup('env', 'NEXUS_USER') | default('admin') }}"
+    nexus_pass: "{{ lookup('env', 'NEXUS_PASS') | default('admin') }}"
+    
+  tasks:
+    - name: Configure CORS for browser access (all microfrontend modes)
+      uri:
+        url: "{{ nexus_url }}/service/rest/v1/security/cors"
+        method: PUT
+        user: "{{ nexus_user }}"
+        password: "{{ nexus_pass }}"
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          enabled: true
+          allowCredentials: true
+          allowedOrigins:
+            - "http://localhost:8080"
+            - "http://127.0.0.1:8080"
+            - "https://*.github.io"
+            - "https://*.githubusercontent.com"
+            - "https://*.s3.amazonaws.com"
+            - "https://*.s3-website.*.amazonaws.com"
+            - "http://*.s3-website.*.amazonaws.com"
+            - "https://cdn.jsdelivr.net"
+            - "https://unpkg.com"
+            - "*"
+          allowedMethods:
+            - "GET"
+            - "POST"
+            - "PUT"
+            - "DELETE"
+            - "HEAD"
+            - "OPTIONS"
+          allowedHeaders:
+            - "*"
+          exposedHeaders:
+            - "*"
+        status_code: [200, 204]
+
+    - name: Display CORS configuration completion
+      debug:
+        msg:
+          - "✅ CORS configuration applied successfully!"
+          - "🌐 Nexus UI: {{ nexus_url }}"
+          - "🔧 CORS enabled for all modes: Local, NPM, Nexus, GitHub, AWS"
+          - "🎯 Allowed origins:"
+          - "  - http://localhost:8080 (Local development)"
+          - "  - https://*.github.io (GitHub Pages)"
+          - "  - https://*.s3.amazonaws.com (AWS S3)"
+          - "  - https://cdn.jsdelivr.net (NPM CDN)"
+          - "  - * (All other origins)"

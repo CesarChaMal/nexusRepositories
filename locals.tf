@@ -40,7 +40,7 @@ locals {
   cors_allowed_origins = split(",", coalesce(
     lookup(local.env_vars, "NEXUS_CORS_ALLOWED_ORIGINS", null),
     var.cors_allowed_origins,
-    "http://localhost:8080,http://127.0.0.1:8080,https://*.github.io,https://*.githubusercontent.com,https://*.s3.amazonaws.com,https://*.s3-website-*.amazonaws.com,http://*.s3-website-*.amazonaws.com,https://cdn.jsdelivr.net,https://unpkg.com,*"
+    "http://localhost:8080,http://127.0.0.1:8080,https://*.github.io,https://*.githubusercontent.com,https://*.s3.amazonaws.com,https://*.s3-website.*.amazonaws.com,http://*.s3-website.*.amazonaws.com,https://cdn.jsdelivr.net,https://unpkg.com,*"
   ))
   
   cors_allowed_methods = split(",", coalesce(
